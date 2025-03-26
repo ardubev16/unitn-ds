@@ -22,6 +22,10 @@ gradle-app.setting
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
 
+.settings
+*.class
+*.log
+
 
 # Devenv
 .devenv*
