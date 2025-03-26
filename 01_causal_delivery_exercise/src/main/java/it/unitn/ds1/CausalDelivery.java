@@ -35,7 +35,14 @@ public class CausalDelivery {
                 Chatter.props(id++, "a"), // this one will catch up the topic "a"
                 "chatter1"));
 
-        // TODO 1: create additional actors in a different conversation
+        // DONE 1: create additional actors in a different conversation
+        group.add(system.actorOf(
+                Chatter.props(id++, "b"), // this one will start the topic "b"
+                "chatter2"));
+
+        group.add(system.actorOf(
+                Chatter.props(id++, "b"), // this one will catch up the topic "b"
+                "chatter3"));
 
         // the rest are silent listeners: they have no topics to discuss
         for (int i = 0; i < N_LISTENERS; i++) {
@@ -51,8 +58,10 @@ public class CausalDelivery {
             peer.tell(join, null);
         }
 
-        // tell the first chatter to start conversation
+        // tell the first chatter of a to start conversation
         group.get(0).tell(new StartChatMsg(), null);
+        // tell the first chatter of b to start conversation
+        group.get(2).tell(new StartChatMsg(), null);
         try {
             System.out.println(">>> Wait for the chats to stop and press ENTER <<<");
             System.in.read();

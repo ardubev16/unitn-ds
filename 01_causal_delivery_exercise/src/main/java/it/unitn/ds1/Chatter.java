@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.lang.Thread;
 import java.lang.InterruptedException;
 import java.util.Collections;
+import java.util.Iterator;
 
 class Chatter extends AbstractActor {
 
@@ -25,7 +26,8 @@ class Chatter extends AbstractActor {
     // a buffer storing all received chat messages
     private StringBuffer chatHistory = new StringBuffer();
 
-    // TODO 2: provide a buffer for out-of-order messages
+    // DONE 2: provide a buffer for out-of-order messages
+    private List<ChatMsg> buffer = new ArrayList<ChatMsg>();
 
     /* -- Message types ------------------------------------------------------- */
 
@@ -79,7 +81,8 @@ class Chatter extends AbstractActor {
     private void sendChatMsg(String topic, int n) {
         sendCount++;
 
-        // TODO 3: update vector clock
+        // DONE 3: update vector clock
+        this.vc[this.id] += 1;
 
         // generate chat message
         ChatMsg m = new ChatMsg(topic, n, this.id, this.vc);
@@ -148,12 +151,49 @@ class Chatter extends AbstractActor {
     }
 
     private void onChatMsg(ChatMsg msg) {
+        // DONE 4: deliver only if the message is in-order
+        // DONE 4 hint: once a message is delivered, update the vector clock...
+        if (canDeliver(msg)) {
+            while (msg != null) {
+                updateLocalClock(msg);
+                deliver(msg);
+                msg = findDeliverable();
+            }
+        } else {
+            this.buffer.add(msg);
+        }
+    }
 
-        // "deliver" the message to the simulated chat user
-        deliver(msg);
+    private void updateLocalClock(ChatMsg m) {
+        for (int i = 0; i < this.vc.length; i++) {
+            this.vc[i] = Math.max(this.vc[i], m.vc[i]);
+        }
+    }
 
-        // TODO 4: deliver only if the message is in-order
-        // TODO 4 hint: once a message is delivered, update the vector clock...
+    private boolean canDeliver(ChatMsg incoming) {
+        boolean isNextMessage = incoming.vc[incoming.senderId] == this.vc[incoming.senderId] + 1;
+
+        boolean senderNotInFrontOfReceiver = true;
+        for (int i = 0; i < this.vc.length; i++) {
+            if (i == incoming.senderId)
+                continue;
+            senderNotInFrontOfReceiver &= incoming.vc[i] <= this.vc[i];
+        }
+
+        return isNextMessage && senderNotInFrontOfReceiver;
+    }
+
+    private ChatMsg findDeliverable() {
+        Iterator<ChatMsg> I = buffer.iterator();
+
+        while (I.hasNext()) {
+            ChatMsg m = I.next();
+            if (canDeliver(m)) {
+                I.remove();
+                return m;
+            }
+        }
+        return null;
     }
 
     private void deliver(ChatMsg m) {
